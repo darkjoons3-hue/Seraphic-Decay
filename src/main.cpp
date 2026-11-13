@@ -4,6 +4,7 @@
 
 #include <windows.h>
 #include <mmsystem.h>
+#include <objidl.h>
 #include <gdiplus.h>
 #include <string>
 #include <vector>
