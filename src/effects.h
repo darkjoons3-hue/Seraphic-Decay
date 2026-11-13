@@ -1,5 +1,6 @@
 #pragma once
 #include <windows.h>
+#include <objidl.h>
 #include <gdiplus.h>
 
 // Пространство имен для наших эффектов
