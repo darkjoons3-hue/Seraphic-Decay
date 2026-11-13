@@ -1,4 +1,5 @@
 #include "effects.h"
+#include <cmath> // <--- ДОБАВЛЕНА БИБЛИОТЕКА МАТЕМАТИКИ
 
 using namespace Gdiplus;
 
@@ -11,11 +12,9 @@ namespace Effects {
     }
 
     void Shutdown() {
-        // Заглушка, GDI+ выключается в main
     }
 
     void Draw3DCube(Graphics& graphics, int cx, int cy, float angle) {
-        // Вершины куба (x, y, z)
         float vertices[8][3] = {
             {-50, -50, -50}, { 50, -50, -50}, { 50,  50, -50}, {-50,  50, -50},
             {-50, -50,  50}, { 50, -50,  50}, { 50,  50,  50}, {-50,  50,  50}
@@ -26,10 +25,11 @@ namespace Effects {
 
         PointF projected[8];
         for (int i = 0; i < 8; ++i) {
-            float x1 = vertices[i][0] * cos(radY) - vertices[i][2] * sin(radY);
-            float z1 = vertices[i][0] * sin(radY) + vertices[i][2] * cos(radY);
-            float y2 = vertices[i][1] * cos(radX) - z1 * sin(radX);
-            float z2 = vertices[i][1] * sin(radX) + z1 * cos(radX);
+            // ИСПОЛЬЗУЕМ std::cos и std::sin
+            float x1 = vertices[i][0] * std::cos(radY) - vertices[i][2] * std::sin(radY);
+            float z1 = vertices[i][0] * std::sin(radY) + vertices[i][2] * std::cos(radY);
+            float y2 = vertices[i][1] * std::cos(radX) - z1 * std::sin(radX);
+            float z2 = vertices[i][1] * std::sin(radX) + z1 * std::cos(radX);
 
             float distance = 200.0f;
             float fov = distance / (distance + z2);
@@ -48,14 +48,7 @@ namespace Effects {
         }
     }
 
-    // --- ЗАГОТОВКИ ДЛЯ БУДУЩЕГО ---
-    void Glitch(int intensity) {
-        // Здесь будет код инверсии экрана и сдвига пикселей
-    }
-    void Pixelate(int intensity) {
-        // Здесь будет код пикселизации
-    }
-    void InvertColors() {
-        // Инверсия
-    }
+    void Glitch(int intensity) {}
+    void Pixelate(int intensity) {}
+    void InvertColors() {}
 }
