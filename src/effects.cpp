@@ -1,4 +1,5 @@
 #include "effects.h"
+#include <objidl.h>
 #include <cmath> // <--- ДОБАВЛЕНА БИБЛИОТЕКА МАТЕМАТИКИ
 
 using namespace Gdiplus;
