@@ -1,18 +1,23 @@
 #include "effects.h"
-#include <objidl.h>
-#include <cmath> // <--- ДОБАВЛЕНА БИБЛИОТЕКА МАТЕМАТИКИ
+#include <cmath>
 
 using namespace Gdiplus;
 
 namespace Effects {
+    // Глобальная переменная для токена GDI+
+    ULONG_PTR g_gdiplusToken = 0;
 
     void Init() {
         GdiplusStartupInput gdiplusStartupInput;
-        ULONG_PTR gdiplusToken;
-        GdiplusStartup(&gdiplusToken, &gdiplusStartupInput, NULL);
+        // Инициализируем глобальный токен
+        GdiplusStartup(&g_gdiplusToken, &gdiplusStartupInput, NULL);
     }
 
     void Shutdown() {
+        if (g_gdiplusToken != 0) {
+            GdiplusShutdown(g_gdiplusToken);
+            g_gdiplusToken = 0;
+        }
     }
 
     void Draw3DCube(Graphics& graphics, int cx, int cy, float angle) {
@@ -26,7 +31,6 @@ namespace Effects {
 
         PointF projected[8];
         for (int i = 0; i < 8; ++i) {
-            // ИСПОЛЬЗУЕМ std::cos и std::sin
             float x1 = vertices[i][0] * std::cos(radY) - vertices[i][2] * std::sin(radY);
             float z1 = vertices[i][0] * std::sin(radY) + vertices[i][2] * std::cos(radY);
             float y2 = vertices[i][1] * std::cos(radX) - z1 * std::sin(radX);
