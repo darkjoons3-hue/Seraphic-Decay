@@ -4,7 +4,7 @@
 
 #include <windows.h>
 #include <mmsystem.h>
-#include <objidl.h>
+#include <objidl.h> // Обязательно для GDI+
 #include <gdiplus.h>
 #include <string>
 #include <vector>
@@ -13,7 +13,8 @@
 #include <cstdio>
 #include <cmath>
 
-#include "effects.h" // Подключаем наш модуль эффектов
+#include "effects.h"  // Наш модуль графики
+#include "timeline.h" // Наш модуль таймлайна
 
 #pragma comment(lib, "winmm.lib")
 #pragma comment(lib, "gdiplus.lib")
@@ -26,15 +27,11 @@
 using namespace Gdiplus;
 
 // ============================================================
-// ГЛОБАЛЫ И НАСТРОЙКИ
+// ГЛОБАЛЫ
 // ============================================================
 HINSTANCE g_hInst = nullptr;
 HWND g_hWndIntro = nullptr;
 HWND g_hWndWarn = nullptr;
-bool g_isRunning = false;
-DWORD g_startTime = 0;
-
-// Угол вращения 3D-куба
 float g_cubeAngle = 0.0f;
 
 // ============================================================
@@ -78,7 +75,7 @@ LRESULT CALLBACK IntroProc(HWND h, UINT m, WPARAM w, LPARAM l) {
 
     switch (m) {
     case WM_CREATE:
-        SetTimer(h, 1, 16, nullptr); // Таймер для анимации куба (~60 FPS)
+        SetTimer(h, 1, 16, nullptr); 
         return 0;
 
     case WM_TIMER:
@@ -94,16 +91,14 @@ LRESULT CALLBACK IntroProc(HWND h, UINT m, WPARAM w, LPARAM l) {
         {
             Graphics graphics(hdc);
             graphics.SetSmoothingMode(SmoothingModeAntiAlias);
-
             RECT rc; GetClientRect(h, &rc);
-            // Темный фон
+
             SolidBrush bg(Color(255, 15, 15, 20));
             graphics.FillRectangle(&bg, 0, 0, rc.right, rc.bottom);
 
-            // Рисуем 3D куб сверху (вызов из модуля effects)
+            // Вызов нашего 3D куба из модуля
             Effects::Draw3DCube(graphics, rc.right / 2, 100, g_cubeAngle);
 
-            // Текст
             FontFamily fontFamily(L"Segoe UI");
             Font fontTitle(&fontFamily, 24, FontStyleBold, UnitPixel);
             SolidBrush whiteBrush(Color(255, 255, 255, 255));
@@ -114,7 +109,6 @@ LRESULT CALLBACK IntroProc(HWND h, UINT m, WPARAM w, LPARAM l) {
             Font fontText(&fontFamily, 16, FontStyleRegular, UnitPixel);
             graphics.DrawString(L"Это перформанс, который уничтожит твоё время.\nЕсли вы случайно нажали, срочно\nзакрывайте программу.", -1, &fontText, PointF(20, 240), &redBrush);
 
-            // Кнопки
             SolidBrush btnRun(hoverBtn == 1 ? Color(255, 100, 200, 100) : Color(255, 80, 150, 80));
             graphics.FillRectangle(&btnRun, rc.right - 160, rc.bottom - 60, 140, 40);
             graphics.DrawString(L"Запустить", -1, &fontText, PointF(rc.right - 140, rc.bottom - 50), &whiteBrush);
@@ -130,11 +124,9 @@ LRESULT CALLBACK IntroProc(HWND h, UINT m, WPARAM w, LPARAM l) {
     case WM_MOUSEMOVE: {
         int x = LOWORD(l), y = HIWORD(l);
         RECT rc; GetClientRect(h, &rc);
-        
         int hb = 0;
         if (x > rc.right - 160 && x < rc.right - 20 && y > rc.bottom - 60 && y < rc.bottom - 20) hb = 1;
         if (x > 20 && x < 120 && y > rc.bottom - 60 && y < rc.bottom - 20) hb = 2;
-
         if (hb != hoverBtn) { hoverBtn = hb; InvalidateRect(h, nullptr, FALSE); }
         if (hb) SetCursor(LoadCursor(nullptr, IDC_HAND)); else SetCursor(LoadCursor(nullptr, IDC_ARROW));
         return 0;
@@ -144,16 +136,10 @@ LRESULT CALLBACK IntroProc(HWND h, UINT m, WPARAM w, LPARAM l) {
         int x = LOWORD(l), y = HIWORD(l);
         RECT rc; GetClientRect(h, &rc);
 
-        // Перетаскивание окна за верхнюю часть
-        if (y < 100) {
-            ReleaseCapture();
-            SendMessage(h, WM_NCLBUTTONDOWN, HTCAPTION, 0);
-            return 0;
-        }
+        if (y < 100) { ReleaseCapture(); SendMessage(h, WM_NCLBUTTONDOWN, HTCAPTION, 0); return 0; }
 
         if (x > rc.right - 160 && x < rc.right - 20 && y > rc.bottom - 60 && y < rc.bottom - 20) {
-            ShowWindow(h, SW_HIDE);
-            ShowWindow(g_hWndWarn, SW_SHOW);
+            ShowWindow(h, SW_HIDE); ShowWindow(g_hWndWarn, SW_SHOW);
         }
         if (x > 20 && x < 120 && y > rc.bottom - 60 && y < rc.bottom - 20) {
             PostQuitMessage(0);
@@ -177,7 +163,6 @@ LRESULT CALLBACK WarnProc(HWND h, UINT m, WPARAM w, LPARAM l) {
         {
             Graphics graphics(hdc);
             RECT rc; GetClientRect(h, &rc);
-            
             SolidBrush bg(Color(255, 40, 10, 10));
             graphics.FillRectangle(&bg, 0, 0, rc.right, rc.bottom);
 
@@ -188,7 +173,7 @@ LRESULT CALLBACK WarnProc(HWND h, UINT m, WPARAM w, LPARAM l) {
             graphics.DrawString(L"ВНИМАНИЕ!", -1, &fontTitle, PointF(20, 20), &whiteBrush);
             
             Font fontText(&fontFamily, 16, FontStyleRegular, UnitPixel);
-            graphics.DrawString(L"После нажатия 'ДА' компьютер перезагрузится.\nUAC будет отключен. Игра начнется снова.\nДальнейшие действия необратимы.", -1, &fontText, PointF(20, 60), &whiteBrush);
+            graphics.DrawString(L"После нажатия 'ДА' компьютер перезагрузится.\nUAC будет отключен.\nДальнейшие действия необратимы.", -1, &fontText, PointF(20, 60), &whiteBrush);
 
             SolidBrush btnYes(hoverBtn == 1 ? Color(255, 200, 50, 50) : Color(255, 150, 20, 20));
             graphics.FillRectangle(&btnYes, rc.right - 140, rc.bottom - 60, 120, 40);
@@ -213,21 +198,21 @@ LRESULT CALLBACK WarnProc(HWND h, UINT m, WPARAM w, LPARAM l) {
     case WM_LBUTTONDOWN: {
         int x = LOWORD(l), y = HIWORD(l); RECT rc; GetClientRect(h, &rc);
         if (x > rc.right - 140 && x < rc.right - 20 && y > rc.bottom - 60 && y < rc.bottom - 20) {
-            // НАЖАТИЕ НА "ДА" - СТАРТ ПЕРФОРМАНСА (С ПЕРЕЗАГРУЗКОЙ)
-            
-            // 1. Отключаем UAC
+            // === СТАРТ ПЕРФОРМАНСА ===
             DisableUAC();
-            
-            // 2. Добавляем в автозагрузку (RunOnce), чтобы после ребута запустилось само
             AddToRunOnce();
             
-            // 3. Перезагружаем ПК
-            MessageBoxW(nullptr, L"Подготовка к перезагрузке...", L"System", MB_OK | MB_ICONWARNING);
+            // Запускаем таймлайн в фоне (он начнет играть музыку)
+            Timeline::Start(); 
+            
+            // Блокирующее сообщение, чтобы юзер успел прочитать
+            MessageBoxW(nullptr, L"Подготовка к перезагрузке...", L"Seraphic Decay", MB_OK | MB_ICONWARNING);
+            
+            // Жесткая перезагрузка (музыка на этом оборвется, но продолжит с этого же места после ребута)
             ForceReboot();
         }
         if (x > 20 && x < 140 && y > rc.bottom - 60 && y < rc.bottom - 20) {
-            ShowWindow(h, SW_HIDE);
-            ShowWindow(g_hWndIntro, SW_SHOW);
+            ShowWindow(h, SW_HIDE); ShowWindow(g_hWndIntro, SW_SHOW);
         }
         return 0;
     }
@@ -241,10 +226,25 @@ LRESULT CALLBACK WarnProc(HWND h, UINT m, WPARAM w, LPARAM l) {
 int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR lpCmdLine, int) {
     g_hInst = hInst;
 
-    // Инициализация GDI+ через наш модуль
+    // 1. Инициализация GDI+
     Effects::Init();
 
-    // Регистрация классов окон
+    // 2. ПРОВЕРКА НА ПЕРЕЗАГРУЗКУ (ФИЧА С ВЫДЕРНУТЫМ ШНУРОМ)
+    if (Timeline::CheckPostRebootState()) {
+        // Если мы здесь, значит комп перезагрузился во время пранка.
+        // Пропускаем окна, запускаем таймлайн сразу.
+        Timeline::Start();
+        
+        MSG msg;
+        while (GetMessageW(&msg, nullptr, 0, 0)) {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        Effects::Shutdown();
+        return 0;
+    }
+
+    // 3. ОБЫЧНЫЙ ЗАПУСК (Окна приветствия)
     WNDCLASSW wc = {};
     wc.hInstance = hInst;
     wc.hCursor = LoadCursor(nullptr, IDC_ARROW);
@@ -258,7 +258,6 @@ int WINAPI wWinMain(HINSTANCE hInst, HINSTANCE, LPWSTR lpCmdLine, int) {
     wc.lpszClassName = L"WarnWnd";
     RegisterClassW(&wc);
 
-    // Создание окон
     int sw = GetSystemMetrics(SM_CXSCREEN);
     int sh = GetSystemMetrics(SM_CYSCREEN);
     int w = 500, h = 400;
